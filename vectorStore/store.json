@@ -1,0 +1,24 @@
+[
+  {
+    "pageContent": "OpenAI develops advanced artificial intelligence systems.\r\n\r\nRAG stands for Retrieval-Augmented Generation. It improves AI responses by retrieving relevant information before generating an answer.\r\n\r\nSliding window memory keeps only recent messages in memory to reduce token cost and maintain relevant context.\r\n\r\nEmbeddings convert text into numerical representations so AI can search by meaning instead of exact keywords.",
+    "metadata": {
+      "loc": {
+        "lines": {
+          "from": 1,
+          "to": 7
+        }
+      }
+    }
+  },
+  {
+    "pageContent": "A vector store stores embeddings and helps retrieve semantically relevant information.",
+    "metadata": {
+      "loc": {
+        "lines": {
+          "from": 9,
+          "to": 9
+        }
+      }
+    }
+  }
+]

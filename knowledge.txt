@@ -1,0 +1,9 @@
+OpenAI develops advanced artificial intelligence systems.
+
+RAG stands for Retrieval-Augmented Generation. It improves AI responses by retrieving relevant information before generating an answer.
+
+Sliding window memory keeps only recent messages in memory to reduce token cost and maintain relevant context.
+
+Embeddings convert text into numerical representations so AI can search by meaning instead of exact keywords.
+
+A vector store stores embeddings and helps retrieve semantically relevant information.
