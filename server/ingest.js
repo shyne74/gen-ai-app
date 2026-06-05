@@ -7,7 +7,7 @@ async function ingestData() {
   try {
     console.log("📚 Reading knowledge file...");
 
-    const rawText = fs.readFileSync(
+    const rawText = await fs.promises.readFile(
       "knowledge.txt",
       "utf-8"
     );
