@@ -13,15 +13,15 @@ function App() {
     setChat((prev) => [...prev, { role: "user", text: userMessage }]);
     setMessage("");
     setLoading(true);
-
-    try {
-      const res = await fetch("http://localhost:3000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: userMessage }),
-      });
+    
+try {
+  const res = await fetch("https://gen-ai-app-nq57.onrender.com/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message: userMessage }),
+  });
 
       const data = await res.json();
       console.log("BACKEND RESPONSE:", data);
