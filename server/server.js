@@ -21,7 +21,7 @@ let conversationHistory = [];
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-pro", // Replaced with completely stable production model
+  model: "models/gemini-1.5-flash", // Replaced with completely stable production model
 });
 
 // Safely load knowledge regardless of absolute server paths
