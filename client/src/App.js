@@ -10,88 +10,181 @@ function App() {
 
   const bottomRef = useRef(null);
 
+  const API_URL =
+    "https://gen-ai-app-nq57.onrender.com";
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages, loading]);
 
-  // 📄 Upload PDF
+  // -------------------------
+  // PDF Upload
+  // -------------------------
   const uploadPDF = async () => {
-    if (!file) return;
+    if (!file) {
+      setUploadStatus(
+        "Choose a PDF first"
+      );
+      return;
+    }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    const formData =
+      new FormData();
 
-    setUploadStatus("processing...");
+    formData.append(
+      "file",
+      file
+    );
+
+    setUploadStatus(
+      "Uploading PDF..."
+    );
 
     try {
-      const res = await fetch("https://gen-ai-app-nq57.onrender.com/upload-pdf", {
-        method: "POST",
-        body: formData,
-      });
+      const res =
+        await fetch(
+          `${API_URL}/upload-pdf`,
+          {
+            method:
+              "POST",
+            body:
+              formData,
+          }
+        );
 
-      const data = await res.json();
+      let data;
+
+      try {
+        data =
+          await res.json();
+      } catch {
+        throw new Error(
+          "Server response invalid"
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            "Upload failed"
+        );
+      }
 
       setUploadStatus(
-        `ready (${data.chunks || 0} chunks indexed)`
+        `✅ Ready (${data.chunks || 0
+        } chunks indexed)`
       );
 
       setFile(null);
     } catch (err) {
-      console.error(err);
-      setUploadStatus("upload failed");
+      console.error(
+        "UPLOAD ERROR:",
+        err
+      );
+
+      setUploadStatus(
+        `❌ ${err.message}`
+      );
     }
   };
 
-  // 💬 Ask AI
+  // -------------------------
+  // Ask AI
+  // -------------------------
   const ask = async () => {
-    if (!input.trim()) return;
+    if (!input.trim())
+      return;
 
-    const question = input;
+    const question =
+      input;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        type: "user",
-        text: question,
-      },
-    ]);
+    setMessages(
+      (prev) => [
+        ...prev,
+        {
+          type:
+            "user",
+          text:
+            question,
+        },
+      ]
+    );
 
     setInput("");
     setLoading(true);
 
     try {
-      const res = await fetch("https://gen-ai-app-nq57.onrender.com/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: question,
-        }),
-      });
+      const res =
+        await fetch(
+          `${API_URL}/chat`,
+          {
+            method:
+              "POST",
+            headers:
+              {
+                "Content-Type":
+                  "application/json",
+              },
+            body:
+              JSON.stringify(
+                {
+                  message:
+                    question,
+                }
+              ),
+          }
+        );
 
-      const data = await res.json();
+      let data;
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          text: data.response,
-          sources: data.sources || [],
-        },
-      ]);
+      try {
+        data =
+          await res.json();
+      } catch {
+        throw new Error(
+          "Server response invalid"
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            "Chat failed"
+        );
+      }
+
+      setMessages(
+        (prev) => [
+          ...prev,
+          {
+            type:
+              "ai",
+            text:
+              data.response,
+            sources:
+              data.sources ||
+              [],
+          },
+        ]
+      );
     } catch (err) {
-      console.error(err);
+      console.error(
+        "CHAT ERROR:",
+        err
+      );
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          text: "System error. Try again.",
-        },
-      ]);
+      setMessages(
+        (prev) => [
+          ...prev,
+          {
+            type:
+              "ai",
+            text: `❌ ${err.message}`,
+          },
+        ]
+      );
     }
 
     setLoading(false);
@@ -105,71 +198,145 @@ function App() {
           PDF Mind
         </div>
 
-        <div style={styles.uploadArea}>
+        <div
+          style={
+            styles.uploadArea
+          }
+        >
           <input
             type="file"
-            onChange={(e) =>
-              setFile(e.target.files[0])
+            accept=".pdf"
+            onChange={(
+              e
+            ) =>
+              setFile(
+                e.target
+                  .files[0]
+              )
             }
-            style={styles.fileInput}
+            style={
+              styles.fileInput
+            }
           />
 
           <button
-            onClick={uploadPDF}
-            style={styles.uploadBtn}
+            onClick={
+              uploadPDF
+            }
+            style={
+              styles.uploadBtn
+            }
           >
             Upload
           </button>
 
           {uploadStatus && (
-            <span style={styles.status}>
-              {uploadStatus}
+            <span
+              style={
+                styles.status
+              }
+            >
+              {
+                uploadStatus
+              }
             </span>
           )}
         </div>
       </div>
 
-      {/* CHAT STREAM */}
+      {/* CHAT */}
       <div style={styles.stream}>
-        {messages.length === 0 && (
-          <div style={styles.emptyState}>
-            Upload a PDF and ask anything.
+        {messages.length ===
+          0 && (
+          <div
+            style={
+              styles.emptyState
+            }
+          >
+            Upload a PDF and ask
+            anything.
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div key={i} style={styles.block}>
-            {m.type === "user" ? (
-              <div style={styles.userLine}>
-                › {m.text}
-              </div>
-            ) : (
-              <div style={styles.aiBlock}>
-                <div style={styles.aiText}>
+        {messages.map(
+          (m, i) => (
+            <div
+              key={i}
+              style={
+                styles.block
+              }
+            >
+              {m.type ===
+              "user" ? (
+                <div
+                  style={
+                    styles.userLine
+                  }
+                >
+                  ›{" "}
                   {m.text}
                 </div>
-
-                {/* FIXED SOURCE RENDERING */}
-                {m.sources?.length > 0 && (
-                  <div style={styles.sources}>
-                    {m.sources.map((s, idx) => (
-                      <span
-                        key={idx}
-                        style={styles.source}
-                      >
-                        {s.name}
-                      </span>
-                    ))}
+              ) : (
+                <div
+                  style={
+                    styles.aiBlock
+                  }
+                >
+                  <div
+                    style={
+                      styles.aiText
+                    }
+                  >
+                    {
+                      m.text
+                    }
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+
+                  {m
+                    .sources
+                    ?.length >
+                    0 && (
+                    <div
+                      style={
+                        styles.sources
+                      }
+                    >
+                      {m.sources.map(
+                        (
+                          s,
+                          idx
+                        ) => (
+                          <span
+                            key={
+                              idx
+                            }
+                            style={
+                              styles.source
+                            }
+                          >
+                            {typeof s ===
+                            "object"
+                              ? s.name
+                              : s}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        )}
 
         {loading && (
-          <div style={styles.thinking}>
-            processing...
+          <div
+            style={
+              styles.thinking
+            }
+          >
+            Thinking through
+            document...
           </div>
         )}
 
@@ -177,16 +344,32 @@ function App() {
       </div>
 
       {/* INPUT */}
-      <div style={styles.commandBar}>
+      <div
+        style={
+          styles.commandBar
+        }
+      >
         <input
           value={input}
-          onChange={(e) =>
-            setInput(e.target.value)
+          onChange={(
+            e
+          ) =>
+            setInput(
+              e.target
+                .value
+            )
           }
           placeholder="Ask your document..."
-          style={styles.input}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
+          style={
+            styles.input
+          }
+          onKeyDown={(
+            e
+          ) => {
+            if (
+              e.key ===
+              "Enter"
+            ) {
               ask();
             }
           }}
@@ -194,7 +377,9 @@ function App() {
 
         <button
           onClick={ask}
-          style={styles.askBtn}
+          style={
+            styles.askBtn
+          }
         >
           Run
         </button>
@@ -208,28 +393,34 @@ const styles = {
     height: "100vh",
     background: "#0b0c0f",
     color: "#e5e7eb",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      "Arial, sans-serif",
     display: "flex",
-    flexDirection: "column",
+    flexDirection:
+      "column",
   },
 
   topBar: {
     display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 24px",
-    borderBottom: "1px solid #1f2937",
+    justifyContent:
+      "space-between",
+    alignItems:
+      "center",
+    padding:
+      "16px 24px",
+    borderBottom:
+      "1px solid #1f2937",
   },
 
   brand: {
     fontSize: 18,
     fontWeight: "600",
-    letterSpacing: "0.5px",
   },
 
   uploadArea: {
     display: "flex",
-    alignItems: "center",
+    alignItems:
+      "center",
     gap: 10,
   },
 
@@ -239,10 +430,13 @@ const styles = {
   },
 
   uploadBtn: {
-    background: "#1f2937",
-    border: "1px solid #374151",
+    background:
+      "#1f2937",
+    border:
+      "1px solid #374151",
     color: "white",
-    padding: "8px 14px",
+    padding:
+      "8px 14px",
     borderRadius: 8,
     cursor: "pointer",
   },
@@ -257,15 +451,16 @@ const styles = {
     overflowY: "auto",
     padding: "30px",
     display: "flex",
-    flexDirection: "column",
+    flexDirection:
+      "column",
     gap: 18,
   },
 
   emptyState: {
-    textAlign: "center",
+    textAlign:
+      "center",
     opacity: 0.45,
     marginTop: 120,
-    fontSize: 15,
   },
 
   block: {
@@ -278,15 +473,16 @@ const styles = {
   },
 
   aiBlock: {
-    borderLeft: "2px solid #1f2937",
+    borderLeft:
+      "2px solid #1f2937",
     paddingLeft: 14,
   },
 
   aiText: {
     fontSize: 15,
     lineHeight: 1.7,
-    color: "#f3f4f6",
-    whiteSpace: "pre-wrap",
+    whiteSpace:
+      "pre-wrap",
   },
 
   sources: {
@@ -298,19 +494,20 @@ const styles = {
 
   source: {
     fontSize: 11,
-    color: "#9ca3af",
-    border: "1px solid #374151",
-    padding: "4px 8px",
+    border:
+      "1px solid #374151",
+    padding:
+      "4px 8px",
     borderRadius: 999,
   },
 
   thinking: {
     opacity: 0.5,
-    fontSize: 14,
   },
 
   commandBar: {
-    borderTop: "1px solid #1f2937",
+    borderTop:
+      "1px solid #1f2937",
     padding: 20,
     display: "flex",
     gap: 10,
@@ -318,20 +515,25 @@ const styles = {
 
   input: {
     flex: 1,
-    background: "#111827",
-    border: "1px solid #374151",
+    background:
+      "#111827",
+    border:
+      "1px solid #374151",
     borderRadius: 12,
-    padding: "14px 16px",
+    padding:
+      "14px 16px",
     color: "white",
     outline: "none",
-    fontSize: 14,
   },
 
   askBtn: {
-    background: "#1f2937",
-    border: "1px solid #374151",
+    background:
+      "#1f2937",
+    border:
+      "1px solid #374151",
     color: "white",
-    padding: "0 20px",
+    padding:
+      "0 20px",
     borderRadius: 12,
     cursor: "pointer",
   },
