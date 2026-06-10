@@ -26,7 +26,7 @@ function App() {
     setUploadStatus("processing...");
 
     try {
-      const res = await fetch("http://localhost:3000/upload-pdf", {
+      const res = await fetch("https://gen-ai-app-nq57.onrender.com/upload-pdf", {
         method: "POST",
         body: formData,
       });
@@ -62,7 +62,7 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3000/chat", {
+      const res = await fetch("https://gen-ai-app-nq57.onrender.com/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
