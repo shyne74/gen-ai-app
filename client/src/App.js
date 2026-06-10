@@ -1,39 +1,96 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([]);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const sendMessage = async () => {
-    if (!message.trim()) return;
+  const [file, setFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(null);
 
-    const userMessage = message;
+  const bottomRef = useRef(null);
 
-    setChat((prev) => [...prev, { role: "user", text: userMessage }]);
-    setMessage("");
-    setLoading(true);
-    
-try {
-  const res = await fetch("https://gen-ai-app-nq57.onrender.com/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ message: userMessage }),
-  });
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
+  // 📄 Upload PDF
+  const uploadPDF = async () => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadStatus("processing...");
+
+    try {
+      const res = await fetch("http://localhost:3000/upload-pdf", {
+        method: "POST",
+        body: formData,
+      });
 
       const data = await res.json();
-      console.log("BACKEND RESPONSE:", data);
 
-      setChat((prev) => [
+      setUploadStatus(
+        `ready (${data.chunks || 0} chunks indexed)`
+      );
+
+      setFile(null);
+    } catch (err) {
+      console.error(err);
+      setUploadStatus("upload failed");
+    }
+  };
+
+  // 💬 Ask AI
+  const ask = async () => {
+    if (!input.trim()) return;
+
+    const question = input;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "user",
+        text: question,
+      },
+    ]);
+
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:3000/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: question,
+        }),
+      });
+
+      const data = await res.json();
+
+      setMessages((prev) => [
         ...prev,
-        { role: "ai", text: data.response },
+        {
+          type: "ai",
+          text: data.response,
+          sources: data.sources || [],
+        },
       ]);
     } catch (err) {
-      setChat((prev) => [
+      console.error(err);
+
+      setMessages((prev) => [
         ...prev,
-        { role: "ai", text: "Error connecting to server 😵" },
+        {
+          type: "ai",
+          text: "System error. Try again.",
+        },
       ]);
     }
 
@@ -41,36 +98,105 @@ try {
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>⚡ Yash AI Chat</h2>
+    <div style={styles.shell}>
+      {/* TOP BAR */}
+      <div style={styles.topBar}>
+        <div style={styles.brand}>
+          PDF Mind
+        </div>
 
-      <div style={styles.chatBox}>
-        {chat.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.message,
-              alignSelf: c.role === "user" ? "flex-end" : "flex-start",
-              background: c.role === "user" ? "#4f46e5" : "#222",
-            }}
+        <div style={styles.uploadArea}>
+          <input
+            type="file"
+            onChange={(e) =>
+              setFile(e.target.files[0])
+            }
+            style={styles.fileInput}
+          />
+
+          <button
+            onClick={uploadPDF}
+            style={styles.uploadBtn}
           >
-            {c.text}
+            Upload
+          </button>
+
+          {uploadStatus && (
+            <span style={styles.status}>
+              {uploadStatus}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* CHAT STREAM */}
+      <div style={styles.stream}>
+        {messages.length === 0 && (
+          <div style={styles.emptyState}>
+            Upload a PDF and ask anything.
+          </div>
+        )}
+
+        {messages.map((m, i) => (
+          <div key={i} style={styles.block}>
+            {m.type === "user" ? (
+              <div style={styles.userLine}>
+                › {m.text}
+              </div>
+            ) : (
+              <div style={styles.aiBlock}>
+                <div style={styles.aiText}>
+                  {m.text}
+                </div>
+
+                {/* FIXED SOURCE RENDERING */}
+                {m.sources?.length > 0 && (
+                  <div style={styles.sources}>
+                    {m.sources.map((s, idx) => (
+                      <span
+                        key={idx}
+                        style={styles.source}
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
-        {loading && <div style={styles.loading}>thinking... 🧠</div>}
+        {loading && (
+          <div style={styles.thinking}>
+            processing...
+          </div>
+        )}
+
+        <div ref={bottomRef} />
       </div>
 
-      <div style={styles.inputBox}>
+      {/* INPUT */}
+      <div style={styles.commandBar}>
         <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Ask something..."
+          value={input}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
+          placeholder="Ask your document..."
           style={styles.input}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              ask();
+            }
+          }}
         />
 
-        <button onClick={sendMessage} style={styles.button}>
-          Send
+        <button
+          onClick={ask}
+          style={styles.askBtn}
+        >
+          Run
         </button>
       </div>
     </div>
@@ -78,50 +204,136 @@ try {
 }
 
 const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
+  shell: {
     height: "100vh",
-    background: "#0f0f0f",
-    color: "white",
-    padding: 20,
-    fontFamily: "Arial",
-  },
-  title: {
-    textAlign: "center",
-  },
-  chatBox: {
-    flex: 1,
+    background: "#0b0c0f",
+    color: "#e5e7eb",
+    fontFamily: "Arial, sans-serif",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
-    overflowY: "auto",
-    padding: 10,
   },
-  message: {
-    padding: 10,
-    borderRadius: 10,
-    maxWidth: "60%",
-  },
-  inputBox: {
+
+  topBar: {
     display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 24px",
+    borderBottom: "1px solid #1f2937",
+  },
+
+  brand: {
+    fontSize: 18,
+    fontWeight: "600",
+    letterSpacing: "0.5px",
+  },
+
+  uploadArea: {
+    display: "flex",
+    alignItems: "center",
     gap: 10,
   },
-  input: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
+
+  fileInput: {
+    color: "#9ca3af",
+    fontSize: 12,
   },
-  button: {
-    padding: "10px 20px",
-    background: "#4f46e5",
+
+  uploadBtn: {
+    background: "#1f2937",
+    border: "1px solid #374151",
     color: "white",
-    border: "none",
+    padding: "8px 14px",
     borderRadius: 8,
     cursor: "pointer",
   },
-  loading: {
-    opacity: 0.6,
+
+  status: {
+    fontSize: 12,
+    color: "#9ca3af",
+  },
+
+  stream: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "30px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18,
+  },
+
+  emptyState: {
+    textAlign: "center",
+    opacity: 0.45,
+    marginTop: 120,
+    fontSize: 15,
+  },
+
+  block: {
+    maxWidth: "850px",
+  },
+
+  userLine: {
+    fontSize: 15,
+    color: "#d1d5db",
+  },
+
+  aiBlock: {
+    borderLeft: "2px solid #1f2937",
+    paddingLeft: 14,
+  },
+
+  aiText: {
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: "#f3f4f6",
+    whiteSpace: "pre-wrap",
+  },
+
+  sources: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+  },
+
+  source: {
+    fontSize: 11,
+    color: "#9ca3af",
+    border: "1px solid #374151",
+    padding: "4px 8px",
+    borderRadius: 999,
+  },
+
+  thinking: {
+    opacity: 0.5,
+    fontSize: 14,
+  },
+
+  commandBar: {
+    borderTop: "1px solid #1f2937",
+    padding: 20,
+    display: "flex",
+    gap: 10,
+  },
+
+  input: {
+    flex: 1,
+    background: "#111827",
+    border: "1px solid #374151",
+    borderRadius: 12,
+    padding: "14px 16px",
+    color: "white",
+    outline: "none",
+    fontSize: 14,
+  },
+
+  askBtn: {
+    background: "#1f2937",
+    border: "1px solid #374151",
+    color: "white",
+    padding: "0 20px",
+    borderRadius: 12,
+    cursor: "pointer",
   },
 };
 
